@@ -97,7 +97,15 @@ const getItemsByCategory = async (categoryId, userUniversity = null) => {
  * Search AVAILABLE items by title or description keyword.
  */
 const searchItems = async (keyword, userUniversity = null) => {
-  const like = `%${keyword}%`;
+  let cleanedKeyword = keyword.toLowerCase();
+  const noiseWords = ['sách', 'truyện', 'quyển', 'cuốn', 'giáo trình', 'đồ', 'cái'];
+  noiseWords.forEach(w => {
+    cleanedKeyword = cleanedKeyword.replace(new RegExp(`\\b${w}\\b`, 'gi'), '');
+  });
+  cleanedKeyword = cleanedKeyword.replace(/\s+/g, ' ').trim();
+  if (!cleanedKeyword) cleanedKeyword = keyword.trim();
+
+  const like = `%${cleanedKeyword}%`;
   let orderBy = "ORDER BY i.created_at DESC";
   let params = [like, like];
   
@@ -236,7 +244,15 @@ const getItemsPaginated = async ({ categoryId, searchKeyword, page = 1, limit = 
   }
 
   if (searchKeyword) {
-    const like = `%${searchKeyword}%`;
+    let cleanedKeyword = searchKeyword.toLowerCase();
+    const noiseWords = ['sách', 'truyện', 'quyển', 'cuốn', 'giáo trình', 'đồ', 'cái'];
+    noiseWords.forEach(w => {
+      cleanedKeyword = cleanedKeyword.replace(new RegExp(`\\b${w}\\b`, 'gi'), '');
+    });
+    cleanedKeyword = cleanedKeyword.replace(/\s+/g, ' ').trim();
+    if (!cleanedKeyword) cleanedKeyword = searchKeyword.trim();
+
+    const like = `%${cleanedKeyword}%`;
     whereClause += " AND (i.title LIKE ? OR i.content LIKE ?)";
     queryParams.push(like, like);
   }
@@ -297,5 +313,40 @@ const getItemsPaginated = async ({ categoryId, searchKeyword, page = 1, limit = 
   };
 };
 
-module.exports = { getAllItems, getItemsByCategory, searchItems, createItem, createItemImage, getItemsByUserId, deleteItem, updateItem, updateItemImage, deleteItemImages, getItemImages, getItemsPaginated };
+const getItemById = async (itemId, userUniversity = null) => {
+  const [rows] = await db.query(`
+    SELECT
+      i.id,
+      i.title,
+      i.price,
+      i.item_condition  AS \`condition\`,
+      i.content,
+      i.created_at,
+      i.status,
+      u.department      AS sellerDepartment,
+      u.id              AS user_id,
+      u.full_name,
+      u.avatar_url,
+      u.created_at      AS sellerJoined,
+      u.university,
+      img.image_url     AS image,
+      i.category_id,
+      i.quantity,
+      (SELECT COUNT(*) FROM transactions t WHERE t.seller_id = u.id AND t.status = 'COMPLETED') AS soldCount
+    FROM items i
+    LEFT JOIN item_images img
+      ON img.item_id = i.id AND img.is_primary = 1
+    LEFT JOIN users u
+      ON u.id = i.user_id
+    WHERE i.id = ?
+  `, [itemId]);
+  
+  if (rows.length === 0) return null;
+  const row = rows[0];
+  return {
+    ...row,
+    isFree: Number(row.price) === 0,
+  };
+};
 
+module.exports = { getAllItems, getItemsByCategory, searchItems, createItem, createItemImage, getItemsByUserId, deleteItem, updateItem, updateItemImage, deleteItemImages, getItemImages, getItemsPaginated, getItemById };

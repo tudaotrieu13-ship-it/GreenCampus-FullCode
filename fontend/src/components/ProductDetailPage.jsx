@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Star, ShieldCheck, MessageSquare, ShoppingCart, Store, ChevronRight, CheckCircle2, ChevronLeft, Zap, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { API_URL } from '../config/api';
 import ReportModal from './ReportModal';
@@ -32,6 +32,17 @@ const ProductDetailPage = ({ product, currentUser, onBack, onOpenStore, onMessag
   const [images, setImages] = useState([]);
   const [mainImage, setMainImage] = useState('');
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const reviewsRef = useRef(null);
+
+  useEffect(() => {
+    const handleScrollToReviews = () => {
+      if (reviewsRef.current) {
+        reviewsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+    window.addEventListener('greencampus:scroll_to_reviews', handleScrollToReviews);
+    return () => window.removeEventListener('greencampus:scroll_to_reviews', handleScrollToReviews);
+  }, []);
 
   const handleAddToCart = () => {
     if (onAddToCart) {
@@ -315,7 +326,7 @@ const ProductDetailPage = ({ product, currentUser, onBack, onOpenStore, onMessag
             </div>
 
             {/* Reviews Section */}
-            <div className="bg-white p-6 md:p-8 rounded-[16px] shadow-sm border border-gray-100">
+            <div ref={reviewsRef} className="bg-white p-6 md:p-8 rounded-[16px] shadow-sm border border-gray-100 scroll-mt-24">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-gray-900 text-lg">Đánh giá sản phẩm</h3>
                 <span className="text-xs text-gray-400">Đánh giá sau khi hoàn tất giao dịch trong Lịch sử</span>

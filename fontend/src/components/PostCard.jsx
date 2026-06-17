@@ -31,7 +31,7 @@ const formatTime = (dateString) => {
   return date.toLocaleDateString('vi-VN');
 };
 
-const PostCard = ({ post, onMessage }) => {
+const PostCard = ({ post, onMessage, onOpenStore }) => {
   const { showToast, confirm } = useToast();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
@@ -128,6 +128,12 @@ const PostCard = ({ post, onMessage }) => {
     }
   };
 
+  const handleOpenProfile = () => {
+    if (onOpenStore) {
+      onOpenStore(post.user_id, post.name || 'Người dùng', post.avatar_url);
+    }
+  };
+
   const handleToggleComments = async () => {
     if (!commentsOpen && comments.length === 0) {
       setLoadingComments(true);
@@ -189,7 +195,10 @@ const PostCard = ({ post, onMessage }) => {
       {/* ── Top Bar ── */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-brand-primary border border-gray-100">
+          <div 
+            className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-brand-primary border border-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleOpenProfile}
+          >
             <img 
               src={getAvatarUrl(post.name, post.avatar_url)} 
               onError={(e) => handleAvatarError(e, post.name)}
@@ -199,7 +208,12 @@ const PostCard = ({ post, onMessage }) => {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <h3 className="font-semibold text-gray-900 text-sm truncate">{post.name}</h3>
+              <h3 
+                className="font-semibold text-gray-900 text-sm truncate cursor-pointer hover:text-brand-green transition-colors"
+                onClick={handleOpenProfile}
+              >
+                {post.name}
+              </h3>
               {post.verified && <ShieldCheck size={14} className="text-brand-green flex-shrink-0" />}
               {isOwner && (
                 <span className="text-[10px] font-semibold text-brand-green bg-brand-primary px-1.5 py-0.5 rounded-full flex-shrink-0">Bạn</span>

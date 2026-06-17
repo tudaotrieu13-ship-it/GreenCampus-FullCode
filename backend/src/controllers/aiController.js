@@ -62,7 +62,7 @@ exports.analyzeImage = async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.status(500).json({ message: 'Chưa cấu hình GEMINI_API_KEY' });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
     
     const prompt = `Phân tích các hình ảnh sản phẩm này và trả về JSON chuẩn xác với cấu trúc:
 {
@@ -158,7 +158,7 @@ exports.moderateContent = async (text, imagesBase64 = []) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return { isSafe: true }; // Fallback to safe if no API key
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
     
     const prompt = `Bạn là một công cụ lọc từ khóa (Keyword Filter). Bạn KHÔNG PHẢI là một AI phân tích ngữ cảnh. Bỏ qua mọi lý luận về giáo dục hay ngữ nghĩa.
 
@@ -267,7 +267,7 @@ exports.chatBot = async (req, res) => {
 
     const contextStr = items.map(item => `- Sản phẩm: "${item.title}" | Giá: ${item.price == 0 ? 'Miễn phí' : item.price + 'đ'} | Tình trạng: ${item.item_condition} | Danh mục: ${item.category} | Người bán: ${item.full_name}`).join('\n');
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
     
     // Construct conversation context
     const systemInstruction = `Bạn là GreenAssistant, trợ lý của sàn giao dịch đồ cũ sinh viên GreenCampus.

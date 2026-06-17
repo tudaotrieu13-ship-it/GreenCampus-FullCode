@@ -1,5 +1,6 @@
 const { createRating, getRatingsByItem, hasUserRated, getRatedTransactionIds } = require('../models/ratingModel');
 const { createNotification } = require('../models/notificationModel');
+const db = require('../config/db');
 
 const addRating = async (req, res) => {
     try {
@@ -20,6 +21,17 @@ const addRating = async (req, res) => {
 
         await createRating({ transaction_id, rater_id, rated_user_id, rating: Number(rating), comment });
 
+        // Get item_id from transaction to link notification
+        let linkPage = 'history';
+        try {
+            const [txnRows] = await db.query('SELECT item_id FROM transactions WHERE id = ?', [transaction_id]);
+            if (txnRows.length > 0 && txnRows[0].item_id) {
+                linkPage = `product:${txnRows[0].item_id}`;
+            }
+        } catch (e) {
+            console.error('Error getting item_id for rating notif:', e);
+        }
+
         // Notify the person being rated
         const stars = '\u2B50'.repeat(Number(rating));
         createNotification(
@@ -27,7 +39,7 @@ const addRating = async (req, res) => {
           'new_rating',
           `Bạn nhận được đánh giá ${stars}`,
           comment ? `"${comment.substring(0, 80)}${comment.length > 80 ? '...' : ''}"` : 'Giao dịch đã được đánh giá.',
-          'history'
+          linkPage
         ).catch(() => {});
 
         res.status(201).json({ message: 'Đánh giá thành công!' });

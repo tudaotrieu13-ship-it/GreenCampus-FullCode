@@ -3,7 +3,7 @@ import PostCard from './PostCard';
 import CreatePostBox from './CreatePostBox';
 import { API_URL } from '../config/api';
 
-const SocialFeed = ({ onOpenChat }) => {
+const SocialFeed = ({ onOpenChat, onOpenStore }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +53,7 @@ const SocialFeed = ({ onOpenChat }) => {
           ))
         ) : posts.length > 0 ? (
           posts.map((post) => (
-            <PostCard key={post.id} post={post} onMessage={onOpenChat} />
+            <PostCard key={post.id} post={post} onMessage={onOpenChat} onOpenStore={onOpenStore} />
           ))
         ) : (
           <div className="text-center py-10 text-gray-500 bg-white rounded-lg border border-gray-100 border-dashed">

@@ -1,4 +1,4 @@
-const { getAllItems, getItemsByCategory, searchItems, createItem, createItemImage, deleteItem, updateItem, updateItemImage, deleteItemImages, getItemImages, getItemsPaginated } = require('../models/itemModel');
+const { getAllItems, getItemsByCategory, searchItems, createItem, createItemImage, deleteItem, updateItem, updateItemImage, deleteItemImages, getItemImages, getItemsPaginated, getItemById } = require('../models/itemModel');
 const { createNotification } = require('../models/notificationModel');
 
 /**
@@ -39,6 +39,20 @@ const getItems = async (req, res) => {
 };
 
 /**
+ * GET /api/items/:id
+ */
+const getItemByIdController = async (req, res) => {
+  try {
+    const item = await getItemById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    res.status(200).json(item);
+  } catch (error) {
+    console.error('Error fetching item by id:', error);
+    res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+  }
+};
+
+/**
  * POST /api/items
  * Protected route to create a new item.
  */
@@ -61,7 +75,8 @@ const postItem = async (req, res) => {
       return res.status(400).json({ message: 'Giá sản phẩm không được nhỏ hơn 0.' });
     }
 
-    // AI Content Moderation
+    // AI Content Moderation - Bỏ kiểm duyệt theo yêu cầu
+    /*
     const { moderateContent } = require('./aiController');
     const fs = require('fs');
     const imagesBase64 = [];
@@ -82,6 +97,7 @@ const postItem = async (req, res) => {
     if (modResult && modResult.isSafe === false) {
       return res.status(400).json({ message: `Sản phẩm vi phạm tiêu chuẩn cộng đồng: ${modResult.reason}` });
     }
+    */
 
     // Insert item into DB
     const itemId = await createItem({
@@ -159,7 +175,8 @@ const putItem = async (req, res) => {
       return res.status(400).json({ message: 'Giá sản phẩm không được nhỏ hơn 0.' });
     }
 
-    // AI Content Moderation
+    // AI Content Moderation - Bỏ kiểm duyệt theo yêu cầu
+    /*
     const { moderateContent } = require('./aiController');
     const fs = require('fs');
     const imagesBase64 = [];
@@ -180,6 +197,7 @@ const putItem = async (req, res) => {
     if (modResult && modResult.isSafe === false) {
       return res.status(400).json({ message: `Sản phẩm vi phạm tiêu chuẩn cộng đồng: ${modResult.reason}` });
     }
+    */
 
     const success = await updateItem(itemId, user_id, {
       title,
@@ -224,4 +242,4 @@ const getImages = async (req, res) => {
   }
 };
 
-module.exports = { getItems, postItem, removeItem, putItem, getImages };
+module.exports = { getItems, getItemById: getItemByIdController, postItem, removeItem, putItem, getImages };

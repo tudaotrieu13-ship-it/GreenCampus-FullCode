@@ -32,6 +32,17 @@ const Header = ({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('greencampus_search_history');
+    if (savedHistory) {
+      try {
+        setSearchHistory(JSON.parse(savedHistory));
+      } catch (e) {}
+    }
+  }, []);
 
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -43,7 +54,13 @@ const Header = ({
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const q = searchQuery.trim();
-    if (q && onSearch) onSearch(q);
+    if (q && onSearch) {
+      const newHistory = [q, ...searchHistory.filter(term => term !== q)].slice(0, 5);
+      setSearchHistory(newHistory);
+      localStorage.setItem('greencampus_search_history', JSON.stringify(newHistory));
+      setShowHistory(false);
+      onSearch(q);
+    }
   };
 
   const handleClearSearch = () => {
@@ -56,6 +73,10 @@ const Header = ({
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+      // Close search history if click outside search container
+      if (searchInputRef.current && !searchInputRef.current.contains(e.target) && !e.target.closest('.search-history-dropdown')) {
+        setShowHistory(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -90,14 +111,35 @@ const Header = ({
                 <input
                   ref={searchInputRef}
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={e => { setSearchQuery(e.target.value); setShowHistory(true); }}
+                  onFocus={() => setShowHistory(true)}
                   placeholder="Tìm kiếm sản phẩm..."
                   className="w-full pl-9 pr-10 py-2 bg-gray-100 rounded-full text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
                 />
                 {searchQuery && (
-                   <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden md:block">
+                   <button type="button" onClick={() => { setSearchQuery(''); if(onSearch) onSearch(''); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden md:block">
                      <X size={15} />
                    </button>
+                )}
+                {/* Search History Dropdown */}
+                {showHistory && searchHistory.length > 0 && !searchQuery && (
+                  <div className="search-history-dropdown absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                    <div className="px-4 py-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Lịch sử tìm kiếm</span>
+                      <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('greencampus_search_history'); }} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Xóa tất cả</button>
+                    </div>
+                    {searchHistory.map((term, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 cursor-pointer group">
+                        <div className="flex items-center gap-3 flex-1" onClick={() => { setSearchQuery(term); setShowHistory(false); if(onSearch) onSearch(term); }}>
+                          <Search size={14} className="text-gray-400" />
+                          <span className="text-sm text-gray-700">{term}</span>
+                        </div>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); const newHistory = searchHistory.filter(t => t !== term); setSearchHistory(newHistory); localStorage.setItem('greencampus_search_history', JSON.stringify(newHistory)); }} className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all p-1">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
               <button type="button" onClick={handleClearSearch} className="text-sm font-medium text-gray-600 hover:text-gray-900 md:hidden">
@@ -113,8 +155,8 @@ const Header = ({
             <button onClick={() => setCurrentPage('home')} className={`font-medium transition-colors ${currentPage === 'home' ? 'text-brand-green' : 'text-gray-600 hover:text-brand-green'}`}>Trang chủ</button>
             <button onClick={() => setCurrentPage('feed')} className={`font-medium transition-colors ${currentPage === 'feed' ? 'text-brand-green' : 'text-gray-600 hover:text-brand-green'}`}>Bản tin</button>
             <button onClick={() => onSelectCategory('Tất cả danh mục')} className="text-gray-600 hover:text-brand-green font-medium transition-colors">Danh mục</button>
-            <button onClick={() => onSelectCategory('Sống xanh')} className={`font-medium transition-colors ${currentPage === 'green-life' ? 'text-brand-green' : 'text-gray-600 hover:text-brand-green'}`}>Sống xanh</button>
             <button onClick={() => setCurrentPage('messages')} className={`font-medium transition-colors ${currentPage === 'messages' ? 'text-brand-green' : 'text-gray-600 hover:text-brand-green'}`}>Tin nhắn</button>
+            <button onClick={() => onSelectCategory('Sống xanh')} className={`font-medium transition-colors ${currentPage === 'green-life' ? 'text-brand-green' : 'text-gray-600 hover:text-brand-green'}`}>Sống xanh</button>
           </nav>
         )}
 
@@ -206,8 +248,8 @@ const Header = ({
             <button onClick={() => { setCurrentPage('home'); setMobileMenuOpen(false); }} className={`text-left px-4 py-3 rounded-xl font-medium transition-colors ${currentPage === 'home' ? 'bg-brand-primary/30 text-brand-green' : 'text-gray-600 hover:bg-gray-50'}`}>Trang chủ</button>
             <button onClick={() => { setCurrentPage('feed'); setMobileMenuOpen(false); }} className={`text-left px-4 py-3 rounded-xl font-medium transition-colors ${currentPage === 'feed' ? 'bg-brand-primary/30 text-brand-green' : 'text-gray-600 hover:bg-gray-50'}`}>Bản tin</button>
             <button onClick={() => { onSelectCategory('Tất cả danh mục'); setMobileMenuOpen(false); }} className="text-left px-4 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-colors">Danh mục</button>
-            <button onClick={() => { onSelectCategory('Sống xanh'); setMobileMenuOpen(false); }} className={`text-left px-4 py-3 rounded-xl font-medium transition-colors ${currentPage === 'green-life' ? 'bg-brand-primary/30 text-brand-green' : 'text-gray-600 hover:bg-gray-50'}`}>Sống xanh</button>
             <button onClick={() => { setCurrentPage('messages'); setMobileMenuOpen(false); }} className={`text-left px-4 py-3 rounded-xl font-medium transition-colors ${currentPage === 'messages' ? 'bg-brand-primary/30 text-brand-green' : 'text-gray-600 hover:bg-gray-50'}`}>Tin nhắn</button>
+            <button onClick={() => { onSelectCategory('Sống xanh'); setMobileMenuOpen(false); }} className={`text-left px-4 py-3 rounded-xl font-medium transition-colors ${currentPage === 'green-life' ? 'bg-brand-primary/30 text-brand-green' : 'text-gray-600 hover:bg-gray-50'}`}>Sống xanh</button>
             
             {currentUser && (
               <button onClick={() => { onPostAndGoToCategories(); setMobileMenuOpen(false); }} className="text-left px-4 py-3 rounded-xl font-semibold bg-brand-green text-white mt-2 shadow-sm flex items-center gap-2">

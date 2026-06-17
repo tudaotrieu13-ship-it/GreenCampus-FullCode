@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { getItems, postItem, removeItem, putItem, getImages } = require('../controllers/itemController');
+const { getItems, getItemById, postItem, removeItem, putItem, getImages } = require('../controllers/itemController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const ALLOWED_IMAGE_TYPES = /jpeg|jpg|png|gif|webp/;
@@ -35,6 +35,9 @@ const upload = multer({
 // GET /api/items
 // GET /api/items?category=<categoryId>
 router.get('/', authMiddleware.optional, getItems);
+
+// GET /api/items/:id
+router.get('/:id', getItemById);
 
 // GET /api/items/:id/images
 router.get('/:id/images', getImages);

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Save, CheckCircle2, User, Lock, Bell, Eye, EyeOff, Loader2, Camera, CreditCard } from 'lucide-react';
 import { API_URL } from '../config/api';
+import { useToast } from './ToastProvider';
 
 const resolveImage = (url) => {
   if (!url) return '';
@@ -72,6 +73,7 @@ const SettingsPage = ({ currentUser, onUpdateUser }) => {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const { showToast } = useToast();
   
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(resolveImage(user.avatar_url || user.avatar));
@@ -130,6 +132,7 @@ const SettingsPage = ({ currentUser, onUpdateUser }) => {
       if (onUpdateUser) onUpdateUser(updatedUser);
       setPwForm({ current: '', next: '', confirm: '' });
 
+      showToast('Đã lưu thông tin cá nhân thành công!', 'success');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {

@@ -360,8 +360,10 @@ const MessagePage = ({ initialContact = null, currentUser = null, onOpenStore = 
     // Tham gia phòng riêng theo ID
     socketRef.current.emit('join_room', currentUserId);
 
-    socketRef.current.on('disconnect', () => {
-      showToast('Đang mất kết nối mạng, đang thử kết nối lại...', 'error');
+    socketRef.current.on('disconnect', (reason) => {
+      if (reason !== 'io client disconnect') {
+        showToast('Đang mất kết nối mạng, đang thử kết nối lại...', 'error');
+      }
     });
 
     socketRef.current.on('connect', () => {

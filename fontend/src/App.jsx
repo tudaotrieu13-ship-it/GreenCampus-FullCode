@@ -330,7 +330,7 @@ function App() {
   // categoryId is optional — QuickActions passes it, Hero/Header may not
   const handleSearch = (q) => {
     if (!q) {
-      setSearchKeyword('');
+      handleSelectCategory('Tất cả danh mục');
       return;
     }
     setSearchKeyword(q);
@@ -401,7 +401,24 @@ function App() {
    * Navigate to a top-level page, resetting all drill-down state.
    * Handles 'profile', 'history', 'settings', 'cart', 'checkout', etc.
    */
-  const navToPage = (page) => {
+  const navToPage = async (page) => {
+    if (page.startsWith('product:')) {
+      const itemId = page.split(':')[1];
+      try {
+        const res = await fetch(`${API_URL}/items/${itemId}`);
+        if (res.ok) {
+          const productData = await res.json();
+          setSelectedProduct(productData);
+          _setCurrentPage('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('greencampus:scroll_to_reviews'));
+          }, 500);
+        }
+      } catch (e) { console.error('Error fetching product for notification:', e); }
+      return;
+    }
+
     _setCurrentPage(page);
     _setSelectedCategory(null);
     _setSelectedCategoryId(null);
@@ -630,7 +647,12 @@ function App() {
             {/* Social Feed Page View */}
             {currentPage === 'feed' && (
               <div className="animate-in fade-in duration-500">
-                <SocialFeed onOpenChat={(contact) => navMessages(contact)} />
+                <SocialFeed 
+                  onOpenChat={(contact) => navMessages(contact)} 
+                  onOpenStore={(contactId, contactName, contactAvatar) => {
+                    setSelectedStore({ id: contactId, name: contactName, avatar: contactAvatar });
+                  }}
+                />
               </div>
             )}
           </>

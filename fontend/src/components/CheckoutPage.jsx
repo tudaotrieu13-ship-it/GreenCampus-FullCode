@@ -172,7 +172,6 @@ const CheckoutPage = ({ cartItems = [], currentUser, onBack, onSuccess, onViewHi
 
   const PAY_METHODS = [
     { id: 'bank_transfer', icon: <CreditCard size={20} />, label: 'Chuyển khoản (Gặp mặt quét QR)', badge: 'Phổ biến' },
-    { id: 'momo',          icon: <Smartphone size={20} />,  label: 'Ví điện tử (Gặp mặt chuyển tiền)' },
     { id: 'cod',           icon: <Wallet size={20} />,      label: 'Thanh toán tiền mặt trực tiếp' },
   ];
 
