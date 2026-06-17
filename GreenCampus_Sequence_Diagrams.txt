@@ -1,0 +1,245 @@
+=============================================================================
+DANH SÁCH MÃ MERMAID CHO 7 SƠ ĐỒ TUẦN TỰ (SEQUENCE DIAGRAMS) - GREENCAMPUS
+=============================================================================
+Hướng dẫn sử dụng:
+1. Copy toàn bộ đoạn mã bắt đầu từ "sequenceDiagram" của sơ đồ bạn chọn.
+2. Dán vào trang web: https://mermaid.live hoặc chèn vào Draw.io (Arrange -> Insert -> Advanced -> Mermaid).
+-----------------------------------------------------------------------------
+
+SƠ ĐỒ 1: LUỒNG ĐĂNG KÝ & ĐĂNG NHẬP (AUTHENTICATION FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor SV as Sinh viên
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (MySQL)
+
+    %% Đăng ký
+    Note over SV, DB: LUỒNG ĐĂNG KÝ TÀI KHOẢN
+    SV->>FE: Nhập Họ tên, Email, Mật khẩu, MSSV, Trường & Khoa
+    FE->>BE: POST /api/auth/register
+    BE->>DB: SELECT id FROM users WHERE email = ?
+    alt Email đã tồn tại
+        DB-->>BE: Trả về thông tin người dùng
+        BE-->>FE: Lỗi 400 (Email đã được đăng ký)
+        FE-->>SV: Hiển thị thông báo "Email đã tồn tại"
+    else Email chưa tồn tại
+        BE->>BE: Hashing mật khẩu bằng Bcrypt.js (salt rounds = 10)
+        BE->>DB: INSERT INTO users (full_name, email, password, student_id, ...)
+        DB-->>BE: Trả về insertId (Tạo thành công)
+        BE->>BE: Tạo JSON Web Token (JWT) mã hóa userId & roleId
+        BE-->>FE: Trả về Status 201 + User Info + JWT Token
+        FE->>FE: Lưu JWT và User Info vào localStorage
+        FE-->>SV: Chuyển hướng về Trang chủ (Đã đăng nhập)
+    end
+
+    %% Đăng nhập
+    Note over SV, DB: LUỒNG ĐĂNG NHẬP
+    SV->>FE: Nhập Email & Mật khẩu
+    FE->>BE: POST /api/auth/login
+    BE->>DB: SELECT * FROM users WHERE email = ?
+    alt Email không tồn tại
+        DB-->>BE: Kết quả rỗng
+        BE-->>FE: Lỗi 401 (Sai thông tin tài khoản)
+        FE-->>SV: Hiển thị thông báo "Tài khoản không chính xác"
+    else Email hợp lệ
+        BE->>BE: So sánh mật khẩu bằng bcrypt.compare()
+        alt Mật khẩu không khớp
+            BE-->>FE: Lỗi 401 (Sai thông tin tài khoản)
+            FE-->>SV: Hiển thị thông báo "Mật khẩu không chính xác"
+        else Mật khẩu trùng khớp
+            BE->>BE: Tạo JSON Web Token (JWT) thời hạn 7 ngày
+            BE-->>FE: Trả về Status 200 + User Info + JWT Token
+            FE->>FE: Lưu JWT và User Info vào localStorage
+            FE-->>SV: Chuyển hướng người dùng vào Trang chủ/Chợ
+        end
+    end
+
+
+SƠ ĐỒ 2: LUỒNG ĐĂNG BÁN SẢN PHẨM TÍCH HỢP HỖ TRỢ AI (AI-ASSISTED PRODUCT LISTING FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor Seller as Sinh viên Bán
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant Gemini as Google Gemini API
+    participant DB as Database (MySQL)
+
+    Seller->>FE: Nhấp nút "Đăng bán", chọn tải lên hình ảnh sản phẩm
+    FE->>FE: Đọc ảnh và chuyển thành định dạng Base64
+    FE->>BE: POST /api/ai/analyze-image (imageBase64, JWT)
+    BE->>BE: Xác thực người dùng qua Middleware
+    BE->>Gemini: Gửi ảnh + prompt gợi ý thông tin (Gemini 1.5 Flash)
+    Note over Gemini: AI phân tích hình ảnh sản phẩm
+    Gemini-->>BE: Trả về cấu trúc JSON (Tên sản phẩm, Danh mục, Độ mới, Gợi ý giá)
+    BE-->>FE: Trả về thông tin gợi ý cho client
+    FE->>FE: Tự động điền (Auto-fill) các trường thông tin lên Form đăng ký sản phẩm
+    FE-->>Seller: Hiển thị form đã có sẵn dữ liệu và giá gợi ý
+    Seller->>FE: Chỉnh sửa lại tiêu đề, giá bán hoặc mô tả (nếu cần) và nhấn "Đăng tin"
+    FE->>BE: POST /api/items (Dữ liệu sản phẩm hoàn chỉnh + JWT)
+    BE->>DB: INSERT INTO items (user_id, title, content, price, category_id, ...)
+    DB-->>BE: Thành công (Lưu item_id)
+    BE->>DB: INSERT INTO item_images (item_id, image_url)
+    DB-->>BE: Thành công
+    BE-->>FE: Trả về Status 201 (Đăng tin sản phẩm thành công)
+    FE-->>Seller: Thông báo đăng tin thành công, chuyển về trang danh sách sản phẩm
+
+
+SƠ ĐỒ 3: LUỒNG ĐẶT HÀNG & TẠO GIAO DỊCH (ORDER CHECKOUT FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor Buyer as Sinh viên Mua
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (MySQL)
+    actor Seller as Sinh viên Bán
+
+    Buyer->>FE: Nhấp "Thêm vào giỏ hàng" -> Tiến hành "Thanh toán"
+    FE->>FE: Thu thập thông tin giao dịch (địa chỉ nhận trong campus, số điện thoại)
+    FE->>BE: POST /api/transactions (Dữ liệu đơn hàng, JWT)
+    BE->>BE: Xác thực người dùng qua Middleware
+    BE->>DB: Bắt đầu giao dịch dữ liệu (START TRANSACTION)
+    BE->>DB: SELECT quantity, status FROM items WHERE id = ? FOR UPDATE
+    alt Sản phẩm đã hết hàng hoặc đã bán (quantity <= 0 hoặc status = 'SOLD')
+        DB-->>BE: Trả về trạng thái hết hàng
+        BE->>DB: ROLLBACK TRANSACTION
+        BE-->>FE: Lỗi 400 (Sản phẩm đã hết hàng)
+        FE-->>Buyer: Thông báo lỗi và cập nhật giỏ hàng
+    else Sản phẩm còn hàng (quantity > 0)
+        BE->>DB: INSERT INTO transactions (buyer_id, seller_id, item_id, status = 'PENDING', ...)
+        DB-->>BE: Lưu transaction_id thành công
+        BE->>DB: UPDATE items SET quantity = quantity - buy_qty
+        alt Số lượng sản phẩm còn lại = 0
+            BE->>DB: UPDATE items SET status = 'SOLD'
+        end
+        BE->>DB: INSERT INTO notifications (user_id = seller_id, title = 'Đơn hàng mới', ...)
+        BE->>DB: COMMIT TRANSACTION
+        DB-->>BE: Lưu giao dịch thành công
+        BE-->>FE: Trả về Status 201 + Thông tin Giao dịch
+        FE-->>Buyer: Hiển thị màn hình đặt hàng thành công & mã đơn hàng
+        BE-->>Seller: Đẩy thông báo đẩy thời gian thực (Real-time Notification)
+    end
+
+
+SƠ ĐỒ 4: NHẮN TIN TRỰC TIẾP & GHIM SẢN PHẨM TRONG CHAT (CONTEXTUAL CHAT FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor Buyer as Sinh viên Mua
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (MySQL)
+    actor Seller as Sinh viên Bán
+
+    Buyer->>FE: Nhấn "Chat với người bán" tại Trang chi tiết sản phẩm
+    FE->>BE: POST /api/messages (Gửi tin nhắn chào tự động kèm item_id, JWT)
+    BE->>DB: INSERT INTO messages (sender_id, receiver_id, message_text, item_id)
+    DB-->>BE: Lưu tin nhắn thành công
+    BE->>DB: INSERT INTO pinned_items (chat_room_id, item_id) ON DUPLICATE KEY UPDATE
+    DB-->>BE: Ghim sản phẩm thành công
+    BE-->>FE: Trả về cuộc hội thoại + trạng thái sản phẩm ghim
+    FE->>FE: Render thanh thông tin sản phẩm ghim ở đầu khung chat
+    FE-->>Buyer: Hiển thị giao diện Chat và sản phẩm đang trao đổi
+    
+    %% Gửi tin nhắn tiếp theo
+    Buyer->>FE: Nhập nội dung tin nhắn mới và nhấn "Gửi"
+    FE->>BE: POST /api/messages (message_text, JWT)
+    BE->>DB: INSERT INTO messages (sender_id, receiver_id, message_text)
+    DB-->>BE: Thành công
+    BE-->>FE: Trả về tin nhắn mới
+    BE-->>Seller: Đồng bộ tin nhắn thời gian thực qua Polling/Websocket
+    Seller-->>FE: Nhận tin nhắn và hiển thị trên màn hình chat của Seller
+
+
+SƠ ĐỒ 5: LUỒNG TRÒ CHUYỆN VỚI TRỢ LÝ SỐNG XANH AI (AI GREEN ASSISTANT CHATBOT FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor User as Sinh viên
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant Gemini as Google Gemini API
+
+    User->>FE: Mở khung chat "Green Assistant", nhập câu hỏi (Ví dụ: "Làm thế nào tích điểm G-Points?")
+    FE->>BE: POST /api/ai/chat (message, chatHistory, JWT)
+    BE->>BE: Xác thực người dùng qua Middleware
+    BE->>Gemini: Gửi câu hỏi + System Instructions (Chỉ dẫn vai trò) + Lịch sử chat
+    Note over Gemini: AI xử lý và sinh câu trả lời theo ngữ cảnh lối sống xanh
+    Gemini-->>BE: Trả về câu trả lời dạng text
+    BE-->>FE: Trả về Status 200 + Nội dung phản hồi (reply)
+    FE->>FE: Cập nhật lịch sử chat trên giao diện
+    FE-->>User: Hiển thị câu trả lời thân thiện của Trợ lý AI trên màn hình
+
+
+SƠ ĐỒ 6: LUỒNG TƯƠNG TÁC BÀI ĐĂNG CỘNG ĐỒNG (SOCIAL FEED FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor User as Sinh viên
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (MySQL)
+
+    %% Tương tác thả tim
+    Note over User, DB: LUỒNG THẢ TIM (LIKE) BÀI ĐĂNG
+    User->>FE: Nhấp nút "Thích" trên một bài viết cộng đồng
+    FE->>BE: POST /api/posts/:id/like (JWT)
+    BE->>BE: Xác thực người dùng qua Middleware
+    BE->>DB: SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?
+    alt Chưa thích bài đăng
+        DB-->>BE: Kết quả rỗng
+        BE->>DB: INSERT INTO post_likes (post_id, user_id)
+        DB-->>BE: Thành công
+        BE-->>FE: Trả về Status 200 (Liked = true)
+        FE->>FE: Cập nhật biểu tượng tim đỏ, tăng số lượt thích (+1) trên UI
+    else Đã thích bài đăng trước đó
+        DB-->>BE: Có dòng dữ liệu tồn tại
+        BE->>DB: DELETE FROM post_likes WHERE post_id = ? AND user_id = ?
+        DB-->>BE: Thành công
+        BE-->>FE: Trả về Status 200 (Liked = false)
+        FE->>FE: Cập nhật biểu tượng tim rỗng, giảm số lượt thích (-1) trên UI
+    end
+
+    %% Bình luận
+    Note over User, DB: LUỒNG BÌNH LUẬN (COMMENT) BÀI ĐĂNG
+    User->>FE: Nhập nội dung bình luận vào ô input và nhấn "Gửi"
+    FE->>BE: POST /api/posts/:id/comments (comment_text, JWT)
+    BE->>DB: INSERT INTO post_comments (post_id, user_id, comment_text)
+    DB-->>BE: Lưu bình luận thành công (insertId)
+    BE->>DB: SELECT c.*, u.full_name, u.avatar_url FROM post_comments c JOIN users u ON c.user_id = u.id WHERE c.id = ?
+    DB-->>BE: Trả về dữ liệu chi tiết bình luận kèm thông tin người viết
+    BE-->>FE: Trả về Status 201 + Dữ liệu bình luận vừa tạo
+    FE->>FE: Đẩy bình luận mới vào danh sách hiển thị dưới bài viết
+    FE-->>User: Hiển thị bình luận mới lập tức
+
+
+SƠ ĐỒ 7: LUỒNG KIỂM DUYỆT NỘI DUNG CỦA QUẢN TRỊ VIÊN (ADMIN CONTENT MODERATION FLOW)
+-----------------------------------------------------------------------------
+sequenceDiagram
+    autonumber
+    actor Admin as Quản trị viên
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (MySQL)
+
+    Admin->>FE: Đăng nhập vào Admin Dashboard -> Chọn trang quản lý
+    Admin->>FE: Nhấn "Xóa bài viết" hoặc "Khóa tài khoản" vi phạm chính sách
+    FE->>BE: DELETE /api/admin/posts/:id hoặc PUT /api/admin/users/:id/ban (JWT)
+    BE->>BE: Kiểm tra phân quyền (Middleware check role_id = ADMIN)
+    alt Không phải Admin
+        BE-->>FE: Lỗi 403 (Không có quyền truy cập)
+        FE-->>Admin: Hiển thị thông báo "Từ chối truy cập"
+    else Xác thực Admin thành công
+        alt Trường hợp xóa bài viết
+            BE->>DB: DELETE FROM social_posts WHERE id = ?
+        else Trường hợp khóa tài khoản
+            BE->>DB: UPDATE users SET is_active = 0 WHERE id = ?
+        end
+        DB-->>BE: Thành công
+        BE-->>FE: Trả về Status 200 (Cập nhật thành công)
+        FE->>FE: Xóa bài viết khỏi danh sách hiển thị hoặc đổi trạng thái người dùng trên bảng quản trị
+        FE-->>Admin: Hiển thị thông báo "Thực hiện thành công"
+    end

@@ -1,0 +1,139 @@
+=============================================================================
+MÃ NGUỒN MERMAID CHO SƠ ĐỒ THỰC THỂ QUAN HỆ (ERD) - GREENCAMPUS
+=============================================================================
+Hướng dẫn sử dụng:
+1. Copy toàn bộ đoạn mã bắt đầu từ "erDiagram" bên dưới.
+2. Dán vào trang web: https://mermaid.live hoặc chèn vào Draw.io (Arrange -> Insert -> Advanced -> Mermaid).
+-----------------------------------------------------------------------------
+
+erDiagram
+    users {
+        int id PK
+        string full_name
+        string email
+        string password
+        string student_id
+        string department
+        string university
+        string avatar_url
+        int role_id
+        timestamp created_at
+    }
+    items {
+        bigint id PK
+        bigint user_id FK
+        string title
+        text content
+        decimal price
+        string item_condition
+        int category_id FK
+        string status
+        int quantity
+        timestamp created_at
+    }
+    item_images {
+        int id PK
+        bigint item_id FK
+        string image_url
+        boolean is_primary
+    }
+    categories {
+        int id PK
+        string name
+    }
+    social_posts {
+        int id PK
+        bigint user_id FK
+        text content
+        string image_url
+        string post_type
+        decimal price
+        boolean is_sold
+        timestamp created_at
+    }
+    post_likes {
+        int post_id PK, FK
+        bigint user_id PK, FK
+    }
+    post_comments {
+        int id PK
+        int post_id FK
+        bigint user_id FK
+        text content
+        timestamp created_at
+    }
+    messages {
+        int id PK
+        bigint sender_id FK
+        bigint receiver_id FK
+        text content
+        bigint item_id FK
+        bigint post_id FK
+        boolean is_read
+        timestamp created_at
+    }
+    pinned_items {
+        int id PK
+        bigint user1_id FK
+        bigint user2_id FK
+        bigint item_id FK
+        bigint pinned_by FK
+        timestamp created_at
+    }
+    transactions {
+        bigint id PK
+        bigint item_id FK
+        bigint buyer_id FK
+        bigint seller_id FK
+        decimal amount
+        string status
+        timestamp created_at
+    }
+    ratings {
+        int id PK
+        bigint transaction_id FK
+        bigint rater_id FK
+        bigint rated_user_id FK
+        tinyint rating
+        text comment
+        timestamp created_at
+    }
+    notifications {
+        int id PK
+        bigint user_id FK
+        string type
+        string title
+        text body
+        string link_page
+        boolean is_read
+        timestamp created_at
+    }
+    wishlists {
+        int id PK
+        bigint user_id FK
+        bigint item_id FK
+        timestamp created_at
+    }
+
+    users ||--o{ items : "đăng bán"
+    users ||--o{ social_posts : "tạo bài viết"
+    users ||--o{ post_likes : "thích"
+    users ||--o{ post_comments : "bình luận"
+    users ||--o{ messages : "gửi/nhận"
+    users ||--o{ pinned_items : "ghim"
+    users ||--o{ transactions : "giao dịch"
+    users ||--o{ ratings : "đánh giá"
+    users ||--o{ notifications : "nhận thông báo"
+    users ||--o{ wishlists : "thích sản phẩm"
+    
+    items ||--o{ item_images : "có ảnh"
+    categories ||--o{ items : "thuộc danh mục"
+    items ||--o{ transactions : "được bán trong"
+    items ||--o{ wishlists : "được thêm vào"
+    items ||--o{ pinned_items : "được ghim"
+    
+    social_posts ||--o{ post_likes : "được thích"
+    social_posts ||--o{ post_comments : "có bình luận"
+    social_posts ||--o{ messages : "tham chiếu"
+
+    transactions ||--|| ratings : "được đánh giá"

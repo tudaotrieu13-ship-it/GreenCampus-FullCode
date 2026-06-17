@@ -1,0 +1,138 @@
+=============================================================================
+DANH SÁCH MÃ MERMAID CHO 5 SƠ ĐỒ HOẠT ĐỘNG (ACTIVITY DIAGRAMS) - GREENCAMPUS
+=============================================================================
+Hướng dẫn sử dụng:
+1. Copy toàn bộ đoạn mã bắt đầu từ "graph TD" của sơ đồ bạn chọn.
+2. Dán vào trang web: https://mermaid.live hoặc chèn vào Draw.io (Arrange -> Insert -> Advanced -> Mermaid).
+-----------------------------------------------------------------------------
+
+SƠ ĐỒ 1: SƠ ĐỒ HOẠT ĐỘNG ĐĂNG KÝ & ĐĂNG NHẬP (AUTHENTICATION ACTIVITY)
+-----------------------------------------------------------------------------
+graph TD
+    Start([Bắt đầu]) --> SelectAction{Chọn tác vụ}
+    SelectAction -->|Đăng ký| FillRegister[Nhập Họ tên, Email, Mật khẩu, MSSV, Khoa]
+    SelectAction -->|Đăng nhập| FillLogin[Nhập Email và Mật khẩu]
+    
+    %% Đăng ký flow
+    FillRegister --> SubReg[Gửi yêu cầu đăng ký]
+    SubReg --> CheckEmail{Email đã tồn tại?}
+    CheckEmail -->|Đúng| ShowRegErr[Hiển thị lỗi: Email đã đăng ký]
+    ShowRegErr --> FillRegister
+    CheckEmail -->|Sai| HashPass[Băm mật khẩu bằng Bcrypt]
+    HashPass --> CreateUser[Lưu tài khoản mới vào database]
+    CreateUser --> GenTokenReg[Tạo JWT Token đăng nhập]
+    GenTokenReg --> SaveTokenReg[Lưu JWT vào localStorage]
+    SaveTokenReg --> MainHome[Điều hướng về Trang chủ]
+    
+    %% Đăng nhập flow
+    FillLogin --> SubLog[Gửi yêu cầu đăng nhập]
+    SubLog --> CheckUserExist{Email có tồn tại?}
+    CheckUserExist -->|Sai| ShowLogErr1[Hiển thị lỗi: Email không tồn tại]
+    ShowLogErr1 --> FillLogin
+    CheckUserExist -->|Đúng| MatchPass{Mật khẩu trùng khớp?}
+    MatchPass -->|Sai| ShowLogErr2[Hiển thị lỗi: Sai mật khẩu]
+    ShowLogErr2 --> FillLogin
+    MatchPass -->|Đúng| GenTokenLog[Tạo JWT Token thời hạn 7 ngày]
+    GenTokenLog --> SaveTokenLog[Lưu JWT vào localStorage]
+    SaveTokenLog --> MainHome
+    
+    MainHome --> End([Kết thúc])
+
+
+SƠ ĐỒ 2: SƠ ĐỒ HOẠT ĐỘNG ĐĂNG BÁN SẢN PHẨM CÓ HỖ TRỢ AI (AI-ASSISTED PRODUCT LISTING ACTIVITY)
+-----------------------------------------------------------------------------
+graph TD
+    Start([Bắt đầu]) --> OpenPost[Chọn Đăng bán sản phẩm]
+    OpenPost --> UploadImg[Tải lên hình ảnh sản phẩm]
+    UploadImg --> RequestAI[Backend gửi ảnh sang Gemini API]
+    RequestAI --> AnalyzeImg{AI nhận diện thành công?}
+    
+    AnalyzeImg -->|Sai| ManualFill[Người dùng tự điền Form thủ công]
+    AnalyzeImg -->|Đúng| AutoFill[Tự động điền: Tên, Danh mục, Độ mới, Gợi ý giá]
+    
+    AutoFill --> EditFields[Người bán chỉnh sửa và bổ sung thông tin]
+    ManualFill --> EditFields
+    
+    EditFields --> PressSubmit[Nhấn Đăng tin]
+    PressSubmit --> Validate{Dữ liệu hợp lệ?}
+    Validate -->|Sai| ShowErr[Hiển thị thông báo lỗi trên Form]
+    ShowErr --> EditFields
+    
+    Validate -->|Đúng| SaveDb[INSERT sản phẩm và hình ảnh vào MySQL]
+    SaveDb --> ShowSuccess[Hiển thị thông báo Đăng tin thành công]
+    ShowSuccess --> Redirect[Chuyển hướng về Trang sản phẩm của tôi]
+    Redirect --> End([Kết thúc])
+
+
+SƠ ĐỒ 3: SƠ ĐỒ HOẠT ĐỘNG ĐẶT HÀNG & THANH TOÁN (ORDER CHECKOUT ACTIVITY)
+-----------------------------------------------------------------------------
+graph TD
+    Start([Bắt đầu]) --> ViewCart[Mở giỏ hàng]
+    ViewCart --> ClickCheckout[Nhấn nút Thanh toán]
+    ClickCheckout --> FillInfo[Nhập địa chỉ giao hàng trong campus & SĐT nhận]
+    FillInfo --> ClickOrder[Xác nhận đặt hàng]
+    
+    ClickOrder --> DbLock[Bắt đầu MySQL Transaction & SELECT FOR UPDATE sản phẩm]
+    DbLock --> CheckStock{Số lượng trong kho > 0?}
+    
+    CheckStock -->|Sai| Rollback[Huỷ giao dịch - Rollback]
+    Rollback --> ShowStockErr[Hiển thị lỗi: Sản phẩm đã hết hàng]
+    ShowStockErr --> ViewCart
+    
+    CheckStock -->|Đúng| CreateTrans[Tạo đơn hàng mới trạng thái PENDING]
+    CreateTrans --> UpdateStock[Trừ số lượng sản phẩm trong kho]
+    UpdateStock --> CheckRemain{Số lượng còn lại = 0?}
+    CheckRemain -->|Đúng| SetSold[Cập nhật trạng thái sản phẩm = SOLD]
+    CheckRemain -->|Sai| NotifySeller[Tạo thông báo đơn hàng mới cho Người bán]
+    SetSold --> NotifySeller
+    
+    NotifySeller --> Commit[Commit MySQL Transaction]
+    Commit --> ShowSuccess[Hiển thị màn hình đặt hàng thành công]
+    ShowSuccess --> End([Kết thúc])
+
+
+SƠ ĐỒ 4: SƠ ĐỒ HOẠT ĐỘNG CHAT NGỮ CẢNH & GHIM SẢN PHẨM (CONTEXTUAL CHAT ACTIVITY)
+-----------------------------------------------------------------------------
+graph TD
+    Start([Bắt đầu]) --> ClickChat[Người mua nhấn 'Chat với người bán' tại trang sản phẩm]
+    ClickChat --> InitRoom[Hệ thống kiểm tra/tạo phòng chat giữa 2 người]
+    InitRoom --> AutoPin[Tự động ghim sản phẩm lên đầu khung chat]
+    AutoPin --> SendAutoMsg[Gửi tin nhắn chào tự động kèm liên kết item_id]
+    
+    SendAutoMsg --> OpenChatWindow[Hiển thị khung chat với sản phẩm được ghim]
+    OpenChatWindow --> UserAction{Người dùng chọn thao tác}
+    
+    UserAction -->|Gửi tin nhắn chữ| SendMsg[Nhập tin nhắn & nhấn Gửi]
+    SendMsg --> SaveMsg[Lưu tin nhắn vào DB & đồng bộ sang bên kia]
+    SaveMsg --> OpenChatWindow
+    
+    UserAction -->|Bấm vào sản phẩm ghim| ViewProductDetail[Mở xem nhanh thông tin sản phẩm]
+    ViewProductDetail --> OpenChatWindow
+    
+    UserAction -->|Nhấn Tạo đơn hàng từ chat| ClickCreateOrder[Bấm nút 'Tạo giao dịch']
+    ClickCreateOrder --> FillCheckout[Tự động điền sản phẩm vào form checkout]
+    FillCheckout --> OpenCheckout[Chuyển sang trang Điền thông tin đặt hàng]
+    
+    UserAction -->|Đóng chat| End([Kết thúc])
+
+
+SƠ ĐỒ 5: SƠ ĐỒ HOẠT ĐỘNG TRÒ CHUYỆN VỚI TRỢ LÝ AI SỐNG XANH (AI GREEN ASSISTANT CHATBOT ACTIVITY)
+-----------------------------------------------------------------------------
+graph TD
+    Start([Bắt đầu]) --> OpenBot[Mở khung chat trợ lý Green Assistant]
+    OpenBot --> InputPrompt[Sinh viên nhập câu hỏi/thắc mắc]
+    InputPrompt --> PressSend[Nhấn gửi tin nhắn]
+    
+    PressSend --> LoadState[Hiển thị trạng thái AI đang gõ...]
+    LoadState --> CallAPI[Backend gửi câu hỏi + lịch sử chat + system instruction tới Gemini]
+    
+    CallAPI --> CheckLimit{Được duyệt API/Không lỗi?}
+    CheckLimit -->|Sai| ShowBotErr[Hiển thị lỗi: Kết nối gián đoạn, vui lòng thử lại]
+    ShowBotErr --> InputPrompt
+    
+    CheckLimit -->|Đúng| GetReply[Backend nhận câu trả lời dạng văn bản từ Gemini]
+    GetReply --> RenderReply[Hiển thị câu trả lời thân thiện trên giao diện chat]
+    RenderReply --> UpdateHistory[Lưu tin nhắn vào lịch sử phiên trò chuyện]
+    
+    UpdateHistory --> InputPrompt
+    InputPrompt -->|Đóng khung chat| End([Kết thúc])
